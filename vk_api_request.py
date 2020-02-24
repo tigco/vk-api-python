@@ -1,6 +1,7 @@
 import requests
 from requests.exceptions import HTTPError
 
+
 def get_text_from_wall(params, min_likes = 0):
     """
     Get public posts from a user's or community's wall on VK.com
@@ -8,7 +9,7 @@ def get_text_from_wall(params, min_likes = 0):
     Args:
       params: The dictionary containing request parameters. access_token, owner_id (wall owner's id), and v (api version) are required parameters.
       More details here https://vk.com/dev/wall.get
-      min_likes: The minimum number of likes that returned posts have
+      min_likes: Optional. The minimum number of likes that returned posts have. Default 0.
     Returns:
       The lists containing the texts from the posts or 
     """
@@ -40,6 +41,7 @@ def get_text_from_wall(params, min_likes = 0):
     else:
         print('access_token, owner_id, and v (api version) are required parameters.')
     return 'Error ocurred'
+
 
 def main():
     import argparse
