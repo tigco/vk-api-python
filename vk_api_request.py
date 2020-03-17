@@ -2,7 +2,7 @@ import requests
 from requests.exceptions import HTTPError
 
 
-def get_text_from_wall(params, min_likes = 0):
+def get_posts_from_wall(params, min_likes = 0, min_reposts = 0):
     """
     Get public posts from a user's or community's wall on VK.com
 
@@ -10,8 +10,9 @@ def get_text_from_wall(params, min_likes = 0):
       params: The dictionary containing request parameters. access_token, owner_id (wall owner's id), and v (api version) are required parameters.
       More details here https://vk.com/dev/wall.get
       min_likes: Optional. The minimum number of likes that returned posts have. Default 0.
+      min_reposts: Optional. The minimum number of reposts that returned posts have. Default 0.
     Returns:
-      The lists containing the texts from the posts or 
+      The lists of posts. Each item contains the text, counts of likes, reposts, and views, and vk_post_id of the post.
     """
 
     if all (key in params for key in ('access_token', 'owner_id', 'v')) and params['access_token'] and params['owner_id'] and params['v']:
@@ -31,12 +32,23 @@ def get_text_from_wall(params, min_likes = 0):
         else:
             json_response = response.json()['response']
             if json_response['items']:
-                return  [item['text'] for item in json_response['items'] 
-                            if  'copy_history' not in item.keys() 
-                                and 'text' in item.keys() 
-                                and item['text'] 
-                                and 'likes' in item.keys() 
-                                and item['likes']['count'] > min_likes
+                return  [
+                            {
+                                'vk_post_id': item['id'],
+                                'date': None if 'date' not in item.keys() else item['date'],
+                                'text': item['text'], 
+                                'likes_count': item['likes']['count'], 
+                                'reposts_count': item['reposts']['count'], 
+                                'views_count': None if 'views' not in item.keys() else item['views']['count'],
+                            }
+                                for item in json_response['items'] 
+                                    if  'copy_history' not in item.keys() 
+                                        and 'text' in item.keys() 
+                                        and item['text'] 
+                                        and 'likes' in item.keys() 
+                                        and item['likes']['count'] > min_likes
+                                        and 'reposts' in item.keys() 
+                                        and item['reposts']['count'] > min_reposts
                         ]
     else:
         print('access_token, owner_id, and v (api version) are required parameters.')
@@ -53,7 +65,8 @@ def main():
     parser.add_argument("--offset", type=int, default=0, help="the offset to use. For more details see https://vk.com/dev/wall.get")
     parser.add_argument("--count", type=int, default=100, help="the count to use. For more details see https://vk.com/dev/wall.get")
     parser.add_argument("--version", type=str, default='5.103', help="the api version to use. For more details see https://vk.com/dev/wall.get")
-    parser.add_argument("--min_likes", type=int, default=0, help="the minimum number of likes on returned posts")
+    parser.add_argument("--min_likes", type=int, default=0, help="the minimum number of likes of the returned posts")
+    parser.add_argument("--min_reposts", type=int, default=0, help="the minimum number of reposts of the returned posts")
     args = parser.parse_args()
 
     params={
@@ -64,10 +77,10 @@ def main():
         'count': args.count,
         'v': args.version,
     }
-    texts = get_text_from_wall(params, args.min_likes)
-    if texts and isinstance(texts, list) :
-        for text in texts:
-            print(text)
+    posts = get_posts_from_wall(params, args.min_likes, args.min_reposts)
+    if posts and isinstance(posts, list) :
+        for post in posts:
+            print(post)
             print('\n')
     else: print('The request returned nothing.')
     print('\nALL DONE!')
